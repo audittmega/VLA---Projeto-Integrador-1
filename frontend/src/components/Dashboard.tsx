@@ -44,29 +44,35 @@ export const Dashboard: React.FC = () => {
         throw new Error('Falha ao iniciar o lançamento no ESP');
       }
     } catch (error) {
-      return;
+      // Apenas loga, não bloqueia o lançamento
+      console.warn('Erro ao iniciar o lançamento no ESP: ' + (error as Error).message);
     }
 
-    launchRocket();
     setIsLaunched(true);
     setData([]);
-
-    const id = setInterval(() => {
-      const newData = getCurrentData();
-      setData(newData);
-    }, 100);
-
-    setIntervalId(id);
   }, []);
 
-  const handleStop = useCallback(() => {
+  const handleStop = useCallback(async () => {
     if (intervalId) {
       clearInterval(intervalId);
       setIntervalId(null);
     }
     setIsLaunched(false);
-    const finalData = stopRocket();
-    setData(finalData);
+    try {
+      const response = await fetch('http://localhost:8089/api/VLA/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Falha ao parar o lançamento no backend');
+      }
+    } catch (error) {
+      alert('Erro ao parar o lançamento: ' + (error as Error).message);
+    }
+    // Fetch final collected data
+    await fetchBackendData();
   }, [intervalId]);
 
   const handleSave = () => {
@@ -91,6 +97,51 @@ export const Dashboard: React.FC = () => {
       setIsSaving(false);
     }
   };
+
+  // Helper to map backend data to chart data
+  const mapBackendData = (backendData: any[]): ProcessedData[] => {
+    return backendData.map(item => ({
+      altitude: item.altitude,
+      pressure: item.pressure,
+      acceleration: item.accZ, // Use accZ for acceleration
+      timestamp: item.timestamp,
+      roll: item.roll,
+      pitch: item.pitch,
+    }));
+  };
+
+  // Fetch data from backend
+  const fetchBackendData = async () => {
+    try {
+      const response = await fetch('http://localhost:8089/api/VLA/listar');
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dados do backend');
+      }
+      const backendData = await response.json();
+      setData(mapBackendData(backendData));
+    } catch (error) {
+      alert('Erro ao buscar dados do backend: ' + (error as Error).message);
+    }
+  };
+
+  // Fetch periodically when launched, once on mount if not launched
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isLaunched) {
+      fetchBackendData();
+      interval = setInterval(fetchBackendData, 1000);
+      setIntervalId(interval);
+    } else {
+      fetchBackendData();
+      if (intervalId) {
+        clearInterval(intervalId);
+        setIntervalId(null);
+      }
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isLaunched]);
 
   useEffect(() => {
     return () => {
