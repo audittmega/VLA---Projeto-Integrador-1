@@ -20,7 +20,21 @@ export const Dashboard: React.FC = () => {
     return value.toFixed(2);
   };
 
-  const handleLaunch = useCallback(() => {
+  const handleLaunch = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:8089/api/VLA/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Falha ao iniciar o lançamento no backend');
+      }
+    } catch (error) {
+      alert('Erro ao iniciar o lançamento: ' + (error as Error).message);
+      return;
+    }
     launchRocket();
     setIsLaunched(true);
     setData([]);
