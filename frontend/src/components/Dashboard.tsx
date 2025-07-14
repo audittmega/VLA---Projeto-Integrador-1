@@ -44,7 +44,6 @@ export const Dashboard: React.FC = () => {
         throw new Error('Falha ao iniciar o lançamento no ESP');
       }
     } catch (error) {
-      alert('Erro ao iniciar o lançamento no ESP: ' + (error as Error).message);
       return;
     }
 
