@@ -37,17 +37,14 @@ export const Dashboard: React.FC = () => {
     }
 
     try {
-      const espResponse = await fetch('192.168.4.1/launch', {
+      const espResponse = await fetch('http://192.168.4.1/launch', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
       if (!espResponse.ok) {
-        throw new Error('Falha ao iniciar o lançamento no backend');
+        throw new Error('Falha ao iniciar o lançamento no ESP');
       }
     } catch (error) {
-      alert('Erro ao iniciar o lançamento: ' + (error as Error).message);
+      alert('Erro ao iniciar o lançamento no ESP: ' + (error as Error).message);
       return;
     }
 
