@@ -35,6 +35,22 @@ export const Dashboard: React.FC = () => {
       alert('Erro ao iniciar o lançamento: ' + (error as Error).message);
       return;
     }
+
+    try {
+      const espResponse = await fetch('192.168.4.1/launch', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!espResponse.ok) {
+        throw new Error('Falha ao iniciar o lançamento no backend');
+      }
+    } catch (error) {
+      alert('Erro ao iniciar o lançamento: ' + (error as Error).message);
+      return;
+    }
+
     launchRocket();
     setIsLaunched(true);
     setData([]);
