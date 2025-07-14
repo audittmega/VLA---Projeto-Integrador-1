@@ -1,21 +1,31 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Dashboard } from './components/Dashboard';
-import { LaunchButton } from './components/LaunchButton';
-import { MockDataProvider } from './components/MockDataProvider';
+import PreviousLaunches from './components/PreviousLaunches';
+import './App.css';
 
 function App() {
-  const [flying, setFlying] = useState(false);
-
   return (
-    <div>
-      <h1>Dashboard do Foguete</h1>
-      <LaunchButton onLaunch={() => setFlying(true)} disabled={flying} />
-      <button onClick={() => setFlying(false)} disabled={!flying}>
-        Parar Foguete
-      </button>
-      <Dashboard />
-      <MockDataProvider flying={flying} />
-    </div>
+    <Router>
+      <div className="app">
+        <nav className="nav-bar">
+          <div className="nav-content">
+            <h1>VLA - Monitoramento de Lançamento</h1>
+            <div className="nav-links">
+              <Link to="/" className="nav-link">Dashboard</Link>
+              <Link to="/launches" className="nav-link">Lançamentos Anteriores</Link>
+            </div>
+          </div>
+        </nav>
+
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/launches" element={<PreviousLaunches />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 
