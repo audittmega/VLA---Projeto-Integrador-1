@@ -11,6 +11,7 @@ const PreviousLaunches: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = React.useState<boolean>(false);
   const [detailsError, setDetailsError] = React.useState<string | null>(null);
+  const [deletingId, setDeletingId] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     setLoading(true);
@@ -36,10 +37,12 @@ const PreviousLaunches: React.FC = () => {
 
   // Fetch details when a launch is selected
   const handleSelectLaunch = (launch: SavedLaunch) => {
+    // Ensure launch.id is a number
+    const launchIdNum = Number(launch.id);
     setDetailsLoading(true);
     setDetailsError(null);
     setSelectedLaunch(null); // Clear previous selection while loading
-    fetch(`http://localhost:8089/api/VLA/lancamento-id/${launch.id}`)
+    fetch(`http://localhost:8089/api/VLA/lancamento-id/${launchIdNum}`)
       .then((response) => {
         if (!response.ok) throw new Error('Erro ao buscar detalhes do lançamento');
         return response.json();
@@ -65,6 +68,24 @@ const PreviousLaunches: React.FC = () => {
       })
       .catch((err) => setDetailsError(err.message))
       .finally(() => setDetailsLoading(false));
+  };
+
+  // Delete launch handler
+  const handleDeleteLaunch = async (id: number) => {
+    if (!window.confirm('Tem certeza que deseja deletar este lançamento?')) return;
+    setDeletingId(id);
+    try {
+      const response = await fetch(`http://localhost:8089/api/VLA/deleta-lancamento/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Erro ao deletar lançamento');
+      setLaunches((prev) => prev.filter((l) => l.id !== id));
+      if (Number(selectedLaunch?.id) === id) setSelectedLaunch(null);
+    } catch (err: any) {
+      alert(err.message || 'Erro desconhecido ao deletar lançamento');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const chartConfig = {
@@ -100,6 +121,16 @@ const PreviousLaunches: React.FC = () => {
             >
               <h3>{launch.name}</h3>
               <p>{new Date(launch.date).toLocaleDateString()}</p>
+              <button
+                className="btn-delete"
+                onClick={e => {
+                  e.stopPropagation();
+                  handleDeleteLaunch(launch.id);
+                }}
+                disabled={deletingId === launch.id}
+              >
+                {deletingId === launch.id ? 'Deletando...' : 'Deletar'}
+              </button>
             </div>
           ))}
           {!loading && !error && launches.length === 0 && (

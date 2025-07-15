@@ -29,7 +29,7 @@ export interface ProcessedData {
 }
 
 export interface SavedLaunch {
-  id: string;
+  id: number;
   name: string;
   date: string;
   data: ProcessedData[];

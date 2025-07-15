@@ -87,7 +87,7 @@ export function getCurrentData(): ProcessedData[] {
 
 export const saveLaunch = (name: string) => {
   const newLaunch: SavedLaunch = {
-    id: Date.now().toString(),
+    id: Date.now(),
     name,
     date: new Date().toISOString(),
     data: [...data]
