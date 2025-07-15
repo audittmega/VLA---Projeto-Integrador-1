@@ -9,6 +9,7 @@ export const Dashboard: React.FC = () => {
   const [data, setData] = useState<ProcessedData[]>([]);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [launchId, setLaunchId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const formatTime = (timestamp: number) => {
@@ -31,6 +32,8 @@ export const Dashboard: React.FC = () => {
       if (!response.ok) {
         throw new Error('Falha ao iniciar o lançamento no backend');
       }
+      const { idLancamento } = await response.json();
+      setLaunchId(idLancamento.toString());
     } catch (error) {
       alert('Erro ao iniciar o lançamento: ' + (error as Error).message);
       return;
@@ -75,9 +78,13 @@ export const Dashboard: React.FC = () => {
     await fetchBackendData();
   }, [intervalId]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (data.length === 0) {
       alert('Não há dados para salvar.');
+      return;
+    }
+    if (!launchId) {
+      alert('ID de lançamento não encontrado.');
       return;
     }
 
@@ -86,7 +93,20 @@ export const Dashboard: React.FC = () => {
 
     setIsSaving(true);
     try {
-      saveLaunch(name);
+      const response = await fetch(`http://localhost:8089/api/VLA/lancamento-id/${launchId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nome: name,
+          dataLancamento: new Date().toISOString(),
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Falha ao salvar dados do lançamento');
+      }
+
       clearCurrentData();
       setData([]);
       navigate('/launches');
