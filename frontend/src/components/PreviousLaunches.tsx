@@ -7,9 +7,29 @@ import '../styles/PreviousLaunches.css';
 const PreviousLaunches: React.FC = () => {
   const [launches, setLaunches] = React.useState<SavedLaunch[]>([]);
   const [selectedLaunch, setSelectedLaunch] = React.useState<SavedLaunch | null>(null);
+  const [loading, setLoading] = React.useState<boolean>(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    setLaunches(getSavedLaunches());
+    setLoading(true);
+    setError(null);
+    fetch('http://localhost:8089/api/VLA/listarLancamentos')
+      .then((response) => {
+        if (!response.ok) throw new Error('Erro ao buscar lançamentos');
+        return response.json();
+      })
+      .then((data) => {
+        // Map API response to SavedLaunch[] (without data field)
+        const mapped = data.map((item: any) => ({
+          id: item.idLancamento,
+          name: item.nome,
+          date: item.dataLancamento,
+          data: [] // Placeholder, since API does not provide detailed data
+        }));
+        setLaunches(mapped);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   const chartConfig = {
@@ -35,7 +55,9 @@ const PreviousLaunches: React.FC = () => {
       <h1>Lançamentos Anteriores</h1>
       <div className="launches-container">
         <div className="launches-list">
-          {launches.map((launch) => (
+          {loading && <p>Carregando lançamentos...</p>}
+          {error && <p className="error">{error}</p>}
+          {!loading && !error && launches.map((launch) => (
             <div
               key={launch.id}
               className={`launch-item ${selectedLaunch?.id === launch.id ? 'selected' : ''}`}
@@ -45,7 +67,7 @@ const PreviousLaunches: React.FC = () => {
               <p>{new Date(launch.date).toLocaleDateString()}</p>
             </div>
           ))}
-          {launches.length === 0 && (
+          {!loading && !error && launches.length === 0 && (
             <p className="no-launches">Nenhum lançamento salvo ainda.</p>
           )}
         </div>
