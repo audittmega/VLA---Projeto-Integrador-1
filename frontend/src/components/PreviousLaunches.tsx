@@ -1,7 +1,7 @@
 import React from 'react';
 import { SavedLaunch } from '../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getSavedLaunches } from '../api/mockApi';
+import { getSavedLaunches, deleteLaunch } from '../api/mockApi';
 import '../styles/PreviousLaunches.css';
 
 const PreviousLaunches: React.FC = () => {
@@ -30,6 +30,14 @@ const PreviousLaunches: React.FC = () => {
     return value.toFixed(2);
   };
 
+  const handleDelete = () => {
+    if (selectedLaunch) {
+      deleteLaunch(selectedLaunch.id);
+      setLaunches(getSavedLaunches());
+      setSelectedLaunch(null);
+    }
+  };
+
   return (
     <div className="previous-launches">
       <h1>Lançamentos Anteriores</h1>
@@ -54,6 +62,7 @@ const PreviousLaunches: React.FC = () => {
           <div className="launch-details">
             <h2>{selectedLaunch.name}</h2>
             <p>Data: {new Date(selectedLaunch.date).toLocaleString()}</p>
+            <button onClick={handleDelete} style={{marginBottom: 16, background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4, padding: '6px 12px', cursor: 'pointer'}}>Apagar lançamento</button>
             
             <div className="graphs">
               <div className="graph-container">

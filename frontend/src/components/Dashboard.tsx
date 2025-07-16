@@ -9,6 +9,7 @@ export const Dashboard: React.FC = () => {
   const [data, setData] = useState<ProcessedData[]>([]);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedRange, setSelectedRange] = useState<10 | 20 | 30>(10);
   const navigate = useNavigate();
 
   const formatTime = (timestamp: number) => {
@@ -22,21 +23,7 @@ export const Dashboard: React.FC = () => {
 
   const handleLaunch = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:8089/api/VLA/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Falha ao iniciar o lançamento no backend');
-      }
-    } catch (error) {
-      alert('Erro ao iniciar o lançamento: ' + (error as Error).message);
-      return;
-    }
-
-    try {
+      // 1. Chama o ESP para lançar
       const espResponse = await fetch('http://192.168.4.1/launch', {
         method: 'GET',
       });
@@ -48,9 +35,14 @@ export const Dashboard: React.FC = () => {
       console.warn('Erro ao iniciar o lançamento no ESP: ' + (error as Error).message);
     }
 
+    // 2. Espera 3,5 segundos
+    await new Promise(resolve => setTimeout(resolve, 3500));
+
+    // 3. Inicia os dados mockados
+    launchRocket(selectedRange);
     setIsLaunched(true);
     setData([]);
-  }, []);
+  }, [selectedRange]);
 
   const handleStop = useCallback(async () => {
     if (intervalId) {
@@ -58,21 +50,8 @@ export const Dashboard: React.FC = () => {
       setIntervalId(null);
     }
     setIsLaunched(false);
-    try {
-      const response = await fetch('http://localhost:8089/api/VLA/stop', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Falha ao parar o lançamento no backend');
-      }
-    } catch (error) {
-      alert('Erro ao parar o lançamento: ' + (error as Error).message);
-    }
-    // Fetch final collected data
-    await fetchBackendData();
+    stopRocket(); // Garante que o mock pare de gerar dados
+    // Não limpe setData([]) aqui!
   }, [intervalId]);
 
   const handleSave = () => {
@@ -124,15 +103,17 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Fetch periodically when launched, once on mount if not launched
+  // Fetch mock data periodically when launched
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isLaunched) {
-      fetchBackendData();
-      interval = setInterval(fetchBackendData, 1000);
+      setData(getCurrentData());
+      interval = setInterval(() => {
+        setData(getCurrentData());
+      }, 1000);
       setIntervalId(interval);
     } else {
-      fetchBackendData();
+      // Não limpe setData([]) aqui!
       if (intervalId) {
         clearInterval(intervalId);
         setIntervalId(null);
@@ -168,6 +149,18 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-container">
+      <div className="controls-container" style={{ marginBottom: 16 }}>
+        <label style={{ color: '#fff', marginRight: 8 }}>Alcance do lançamento:</label>
+        <select
+          value={selectedRange}
+          onChange={e => setSelectedRange(Number(e.target.value) as 10 | 20 | 30)}
+          style={{ padding: 4, borderRadius: 4 }}
+        >
+          <option value={10}>10 metros</option>
+          <option value={20}>20 metros</option>
+          <option value={30}>30 metros</option>
+        </select>
+      </div>
       <div className="metrics-grid">
         <div className="metric-card">
           <p className="metric-title">Altitude</p>

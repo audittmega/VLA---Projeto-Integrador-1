@@ -4,6 +4,7 @@ let data: ProcessedData[] = [];
 let savedLaunches: SavedLaunch[] = [];
 let isLaunched = false;
 let startTime = 0;
+let currentRange: 10 | 20 | 30 = 10;
 
 // Load saved launches from localStorage on initialization
 const loadSavedLaunches = () => {
@@ -32,10 +33,30 @@ export const processRawData = (rawData: SensorData): ProcessedData => {
 
 function generateSensorData(elapsedTime: number): SensorData {
   const timestamp = Date.now();
-  const altitude = Math.min(10000, elapsedTime * 0.1); // Max altitude of 10km
-  const pressure = Math.max(0, 101.325 - altitude * 0.01); // Pressure decreases with altitude
-  const acceleration = Math.max(0, 20 - elapsedTime * 0.001); // Initial acceleration that decreases
-
+  // Parâmetros teóricos do relatório
+  let maxAltitude = 5.0, maxTime = 1.43, v0 = 9.89;
+  if (currentRange === 20) {
+    maxTime = 2.02; v0 = 14.0;
+  } else if (currentRange === 30) {
+    maxTime = 2.47; v0 = 17.18;
+  }
+  // Altitude: sobe até o máximo (5m), depois desce
+  let t = (elapsedTime / 1000);
+  let altitude = 0;
+  if (t <= maxTime/2) {
+    altitude = (4 * maxAltitude / (maxTime*maxTime)) * t * (maxTime - t); // parábola
+  } else if (t <= maxTime) {
+    altitude = (4 * maxAltitude / (maxTime*maxTime)) * t * (maxTime - t);
+  } else {
+    altitude = 0;
+  }
+  // Pressão: apenas pequenas variações em torno da atmosférica
+  let pressure = 102.5 + (Math.random() - 0.5) * 1.0; // 102~103 kPa
+  // Aceleração: pico inicial, depois cai
+  let acceleration = 20 * Math.exp(-t / (maxTime * 0.2));
+  // Pequenas variações aleatórias
+  altitude += (Math.random() - 0.5) * 0.05;
+  acceleration += (Math.random() - 0.5) * 0.5;
   return {
     sensors: {
       altimetro: {
@@ -58,10 +79,11 @@ function generateSensorData(elapsedTime: number): SensorData {
   };
 }
 
-export function launchRocket() {
+export function launchRocket(range: 10 | 20 | 30 = 10) {
   isLaunched = true;
   startTime = Date.now();
   data = [];
+  currentRange = range;
 }
 
 export function stopRocket() {
@@ -99,6 +121,11 @@ export const saveLaunch = (name: string) => {
 
 export const getSavedLaunches = (): SavedLaunch[] => {
   return [...savedLaunches];
+};
+
+export const deleteLaunch = (id: string) => {
+  savedLaunches = savedLaunches.filter(l => l.id !== id);
+  localStorage.setItem('savedLaunches', JSON.stringify(savedLaunches));
 };
 
 export const clearCurrentData = () => {
